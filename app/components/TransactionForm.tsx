@@ -18,7 +18,7 @@ const CATEGORIES = [
 export default function TransactionForm({ onClose, onTransactionCreated }: TransactionFormProps) {
     const [descricao, setDescricao] = useState('');
     const [valor, setValor] = useState('');
-    const [tipo, setTipo] = useState('');
+    const [tipo, setTipo] = useState('RECEITA');
     const [categoria, setCategoria] = useState(CATEGORIES[0]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState('');
