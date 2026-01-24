@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation'
@@ -51,6 +52,13 @@ export default function CadastroPage() {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+            {/* Link de Voltar */}
+            <Link 
+                href="/" 
+                className="absolute top-10 left-10 text-sm font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-all"
+            >
+                ← Voltar para a Home
+            </Link>
             <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg">
                 <Logo /> {/* Logo com a vibe Duolingo */}
 
