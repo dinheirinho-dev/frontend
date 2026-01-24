@@ -9,7 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 interface GoalProgressFormProps {
     onClose: () => void;
     onProgressAdded: () => void; // Função para recarregar o Dashboard
-    goalId: number; // ID da meta que será atualizada
+    goalId: string; // ID da meta que será atualizada
     goalDescription: string; // Descrição da meta para o título do modal
 }
 

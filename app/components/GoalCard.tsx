@@ -2,18 +2,18 @@ import React from 'react';
 
 // Interfaces (baseados no schemas.py)
 interface Goal {
-    id: number;
+    id: string;
     descricao: string;
     valor_alvo: number;
     valor_atual: number;
     data_limite: string; // Vem como string no formato YYYY-MM-DD
-    owner_id: number;
+    owner_id: string;
 }
 
 interface GoalCardProps {
     goal: Goal;
     onEdit: (goal: Goal) => void;
-    onDelete: (goalId: number) => void;
+    onDelete: (goalId: string) => void;
     onAddProgress: (goal: Goal) => void; // A função de progresso deve receber a meta inteira
 }
 

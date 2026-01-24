@@ -10,12 +10,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // --- Interfaces (Devem corresponder ao models/schemas do backend) ---
 interface Goal {
-    id: number;
+    id: string;
     descricao: string;
     valor_alvo: number;
     valor_atual: number;
     data_limite: string; // Formato YYYY-MM-DD
-    owner_id: number;
+    owner_id: string;
 }
 
 interface GoalFormProps {
