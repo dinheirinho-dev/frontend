@@ -1,43 +1,46 @@
 "use client";
 
 import Link from "next/link";
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import React from 'react';
 
+// Importamos a sua instância configurada
+import api from '../../src/services/api';
 import Logo from '../components/Logo';
 
-// URL base da API FastAPI
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export default function LoginPage() {
-    // Capturar o e-mail e senha
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [mensagem, setMensagem] = useState('');
     const router = useRouter();
 
-    // Lógica de Login
     const handleLogin = async (e: React.FormEvent) => {
-        // ESSENCIAL: Evita que o formulário recarregue a página
         e.preventDefault();
 
         try {
+            // O FastAPI (OAuth2) espera os dados em formato Form Data
             const formData = new URLSearchParams();
             formData.append('username', email);
             formData.append('password', senha);
 
-            const response = await axios.post(`${API_URL}/token`, formData, {
+            // Usamos o axios diretamente aqui para o login, pois ainda não temos o token
+            // Mas usamos a baseURL que já definimos na nossa api
+            const response = await api.post('/token', formData, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 }
             });
 
-            // Se o login for 200 OK:
+            // 1. Capturamos o token JWT
             const token = response.data.access_token;
+
+            // 2. Salvamos no localStorage para uso dos interceptors
             localStorage.setItem('dinheirinho_token', token);
+
+            // 3. Atualizamos a instância da API para as próximas chamadas nesta mesma sessão
+            api.defaults.headers.Authorization = `Bearer ${token}`;
 
             setMensagem('🎉 Login efetuado com sucesso! Redirecionando...');
 
@@ -46,7 +49,9 @@ export default function LoginPage() {
 
         } catch (error) {
             if (axios.isAxiosError(error) && error.response) {
-                setMensagem('Erro de login: ' + error.response.data.detail);
+                // Se o backend retornou um erro específico (ex: senha incorreta)
+                const erroDetalhe = error.response.data.detail || 'Erro ao realizar login';
+                setMensagem('Erro: ' + erroDetalhe);
             } else {
                 setMensagem('Erro de conexão com o servidor.');
             }
@@ -55,18 +60,19 @@ export default function LoginPage() {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-            {/* Link de Voltar */}
-            <Link 
-                href="/" 
+            <Link
+                href="/"
                 className="absolute top-10 left-10 text-sm font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-all"
             >
                 ← Voltar para a Home
             </Link>
+
             <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg">
                 <Logo />
                 <h2 className="text-2xl font-bold text-center text-green-600">
                     Dinheirinho: Faça seu Login
                 </h2>
+
                 <form className="space-y-4" onSubmit={handleLogin}>
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700">E-mail</label>
@@ -99,7 +105,6 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                {/* Área de Mensagens */}
                 {mensagem && (
                     <p className={`text-center text-sm font-medium ${mensagem.includes('sucesso') ? 'text-green-600' : 'text-red-600'}`}>
                         {mensagem}
