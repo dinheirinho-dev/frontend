@@ -197,7 +197,7 @@ export default function LandingPage() {
               Pronto para começar sua pilha?
             </h2>
             <p className="text-lg text-gray-600 mb-8">
-              Junte-se a milhares de usuários que estão transformando sua vida financeira hoje mesmo.
+              Junte-se hoje mesmo a milhares de usuários que estão transformando sua vida financeira.
             </p>
             <a
               href="/cadastro"
