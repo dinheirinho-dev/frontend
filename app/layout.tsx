@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className="bg-gray-50 antialiased min-h-screen">
         {children}
+        <Analytics />
       </body>
     </html>
   );
