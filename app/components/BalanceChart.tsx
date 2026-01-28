@@ -1,39 +1,34 @@
-// components/BalanceChart.tsx
-
 "use client";
 
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// 1. SOLUÇÃO: Define o tipo BalancePoint AQUI
 type BalancePoint = {
     date: string;
     balance: number;
 };
 
-// 2. SOLUÇÃO: Função de Formatação (Substitui utils/formatters)
 const formatMoney = (value: number, includeCurrency = true): string => {
     const formatted = new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL',
         minimumFractionDigits: 2,
-    }).format(Math.abs(value)); // Usa Math.abs para formatar o número sem o sinal
-
+    }).format(value); // Removi o Math.abs para o sinal de negativo aparecer no eixo Y se necessário
     return includeCurrency ? formatted : formatted.replace('R$', '').trim();
 };
-
 
 interface BalanceChartProps {
     data: BalancePoint[];
 }
 
-// 3. SOLUÇÃO: CustomTooltip com tipagem explícita
 const CustomTooltip: React.FC<{ active?: boolean, payload?: any[], label?: string }> = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="p-3 bg-white border border-gray-300 rounded-lg shadow-md text-sm">
-                <p className="font-semibold text-gray-700">{label}</p>
-                <p className="text-lg font-black" style={{ color: payload[0].color }}>
+            <div className="p-4 bg-white/90 backdrop-blur-md border border-gray-100 rounded-2xl shadow-xl text-sm">
+                <p className="font-bold text-gray-400 mb-1">
+                    {new Date(label || '').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                </p>
+                <p className="text-xl font-black text-green-600">
                     {formatMoney(payload[0].value)}
                 </p>
             </div>
@@ -42,69 +37,61 @@ const CustomTooltip: React.FC<{ active?: boolean, payload?: any[], label?: strin
     return null;
 };
 
-
 const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
     if (!data || data.length === 0) {
         return (
-            <div className="text-center p-8 text-gray-500 bg-white rounded-lg shadow-md">
-                <p>🚀 Lance algumas transações para ver seu histórico de saldo aqui!</p>
+            <div className="flex items-center justify-center h-80 text-center p-8 text-gray-400 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                <p>🚀 Lance algumas transações para ver a evolução da sua pilha!</p>
             </div>
         );
     }
 
-    // Mapeia os dados para o formato que o Recharts usa, garantindo o sinal (positivo/negativo)
-    const chartData = data.map(item => ({
-        ...item,
-        // Garante que os valores no eixo Y sejam plotados corretamente (podem ser negativos)
-        balance: item.balance,
-    }));
-
-
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md h-96">
-            <ResponsiveContainer width="100%" height="98%">
+        <div className="h-80 w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                    data={chartData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    data={data}
+                    margin={{ top: 10, right: 0, left: -20, bottom: 0 }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                        dataKey="date"
-                        fontSize={12}
-                        stroke="#555"
-                        // CORREÇÃO: Formatar a string YYYY-MM-DD HH:MM para exibição
-                        tickFormatter={(tick) => {
-                            const date = new Date(tick);
-                            // Exibe Apenas a data (dia/mês)
-                            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-                        }}
-                    />
-                    <YAxis
-                        // Formata o tick do eixo Y com R$
-                        tickFormatter={(tick) => formatMoney(tick, true)}
-                        fontSize={12}
-                        stroke="#555"
-                    />
-
-                    <Tooltip content={<CustomTooltip />} />
-
-                    {/* Definição do Gradiente de Fundo (Efeito visual Duolingo) */}
                     <defs>
                         <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                            {/* Usa cores dinâmicas baseadas no Saldo */}
-                            <stop offset="5%" stopColor="#4CAF50" stopOpacity={0.7} />
-                            <stop offset="95%" stopColor="#4CAF50" stopOpacity={0.1} />
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                         </linearGradient>
                     </defs>
 
-                    {/* Linha e Área do Saldo */}
+                    {/* Grid apenas horizontal e bem sutil */}
+                    <CartesianGrid vertical={false} stroke="#f3f4f6" strokeDasharray="3 3" />
+
+                    <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#9ca3af', fontSize: 11 }}
+                        minTickGap={30}
+                        tickFormatter={(tick) => {
+                            const date = new Date(tick);
+                            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                        }}
+                    />
+
+                    <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#9ca3af', fontSize: 11 }}
+                        tickFormatter={(tick) => `R$ ${tick}`}
+                    />
+
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#10b981', strokeWidth: 1, strokeDasharray: '5 5' }} />
+
                     <Area
                         type="monotone"
                         dataKey="balance"
-                        stroke="#4CAF50" // Cor principal do Dinheirinho (Verde)
+                        stroke="#10b981"
+                        strokeWidth={3}
+                        fillOpacity={1}
                         fill="url(#colorBalance)"
-                        strokeWidth={2}
-                        name="Saldo Acumulado"
+                        animationDuration={1500}
                     />
                 </AreaChart>
             </ResponsiveContainer>

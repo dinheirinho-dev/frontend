@@ -1,8 +1,9 @@
-export const dynamic = "force-dynamic";
+import "./globals.css";
 import type { Metadata } from "next";
+export const dynamic = "force-dynamic";
+import { ClerkProvider } from '@clerk/nextjs'
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
-import "./globals.css";
 
 
 const geistSans = Geist({
@@ -62,11 +63,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body className="bg-gray-50 antialiased min-h-screen">
-        {children}
-        <Analytics />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="pt-BR">
+        <body className="bg-gray-50 antialiased min-h-screen">
+          {children}
+          <Analytics />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

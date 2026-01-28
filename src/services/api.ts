@@ -5,14 +5,14 @@ const api = axios.create({
 });
 
 // O "Interceptor" que coloca o token em cada chamada
-api.interceptors.request.use((config) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('dinheirinho_token') : null;
+// api.interceptors.request.use((config) => {
+//     const token = typeof window !== 'undefined' ? localStorage.getItem('dinheirinho_token') : null;
 
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
+//     if (token) {
+//         config.headers.Authorization = `Bearer ${token}`;
+//     }
 
-    return config;
-});
+//     return config;
+// });
 
 export default api;

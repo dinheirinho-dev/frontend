@@ -3,57 +3,41 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import React from 'react';
 
-const COLORS = ['#FF6B6B', '#FFD166', '#06D6A0', '#118AB2', '#6A4C93', '#F78C6B'];
+const COLORS = ['#FF6B6B', '#FFD166', '#06D6A0', '#118AB2', '#6A4C93', '#F78C6B', '#A8E6CF', '#DCEDC1', '#FFD3B6'];
 
-// Interface for the data received from the backend summary
 interface ChartData {
     category: string;
     total_spent: number;
 }
 
-// Our isolated component follows the Single Responsibility Principle (SRP)
 interface ExpensePieChartProps {
     data: ChartData[];
     totalExpense: number;
+    showValues: boolean;
 }
 
-const RADIAN = Math.PI / 180;
+export default function ExpensePieChart({ data, totalExpense, showValues }: ExpensePieChartProps) {
 
-// Custom Label: Ensures the chart label are outside the slices
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.cos(-midAngle * RADIAN);
-
-    return (
-        <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-sm font-semibold">
-            {`${(percent * 100).toFixed(0)}%`}
-        </text>
-    );
-}
-
-export default function ExpensePieChart({ data, totalExpense }: ExpensePieChartProps) {
-
-    // Check if there are expenses to display
     if (!data || data.length === 0 || totalExpense === 0) {
         return (
-            <div className="text-center p-8 text-gray-500 bg-white rounded-xl shadow-md">
-                <p>Nenhum gasto para colocar no gráfico ainda. Continue organizando suas despesas!</p>
+            <div className="flex items-center justify-center h-80 text-center p-8 text-gray-400 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                <p>Nenhum gasto registrado ainda. Lance uma despesa para ver a mágica! ✨</p>
             </div>
         );
     }
 
-    // Map the backend data to Recharts format
-    const chartData = data.map(item => ({
-        name: item.category,
-        value: item.total_spent,
-    }));
-
+    // Ordenar do maior para o menor para o gráfico ficar elegante
+    const chartData = [...data]
+        .sort((a, b) => b.total_spent - a.total_spent)
+        .map(item => ({
+            name: item.category,
+            value: item.total_spent,
+        }));
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md h-96">
-            <div style={{ width: '100%', height: 300 }}>
-                <ResponsiveContainer width="100%" height="98%">
+        <div className="h-full flex flex-col justify-center">
+            <div style={{ width: '100%', height: 320 }}>
+                <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
                             data={chartData}
@@ -61,26 +45,46 @@ export default function ExpensePieChart({ data, totalExpense }: ExpensePieChartP
                             nameKey="name"
                             cx="50%"
                             cy="50%"
-                            outerRadius={100}
-                            fill="#8884d8"
-                            labelLine={false}
-                            label={renderCustomizedLabel}
+                            innerRadius={70} // Transforma em Donut
+                            outerRadius={95}
+                            paddingAngle={5} // Dá um respiro entre as fatias
+                            stroke="none"
                         >
                             {chartData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
 
-                        {/* Tooltip shows details when the user hovers over a slice */}
                         <Tooltip
-                            formatter={(value: number, name: string) => [`R$ ${value.toFixed(2)}`, name]}
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                            formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Gasto']}
                         />
 
-                        {/* Legend explains what each color/slice represents */}
-                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
-
+                        {/* Legenda Lateral com Scroll se necessário */}
+                        <Legend
+                            layout="vertical"
+                            verticalAlign="middle"
+                            align="right"
+                            iconType="circle"
+                            wrapperStyle={{
+                                paddingLeft: '20px',
+                                fontSize: '12px',
+                                lineHeight: '24px',
+                                maxHeight: '250px',
+                                overflowY: 'auto'
+                            }}
+                        />
                     </PieChart>
                 </ResponsiveContainer>
+            </div>
+
+            <div className="text-center pb-4">
+                <p className="text-xs text-gray-400 font-medium uppercase tracking-widest">Total no Mês</p>
+                <p className="text-xl font-bold text-gray-700">
+                    {showValues
+                        ? `R$ ${totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        : "R$ ••••••"}
+                </p>
             </div>
         </div>
     );

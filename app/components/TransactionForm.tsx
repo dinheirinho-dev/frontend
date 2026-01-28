@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import React from 'react';
-// 1. Trocamos o axios puro pela nossa instância configurada
+// 1. Importamos o useAuth para pegar o ID do usuário
+import { useAuth } from "@clerk/nextjs";
 import api from '../../src/services/api';
 import axios from 'axios';
 
@@ -16,6 +17,9 @@ const CATEGORIES = [
 ];
 
 export default function TransactionForm({ onClose, onTransactionCreated }: TransactionFormProps) {
+    // 2. Pegamos o userId do Clerk
+    const { userId } = useAuth();
+
     const [descricao, setDescricao] = useState('');
     const [valor, setValor] = useState('');
     const [tipo, setTipo] = useState('RECEITA');
@@ -25,6 +29,13 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // 3. Verificação de segurança: se o Clerk ainda não carregou o ID, não deixa enviar
+        if (!userId) {
+            setError("Identificando usuário... tente novamente.");
+            return;
+        }
+
         setError('');
         setLoading(true);
 
@@ -36,17 +47,19 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
                 categoria: categoria,
             };
 
-            // 2. Agora chamamos apenas api.post. 
-            // O interceptor injeta o Token automaticamente!
-            await api.post('/transactions/', data);
+            // 4. Injetamos o header x-clerk-id na requisição
+            await api.post('/transactions/', data, {
+                headers: {
+                    'x-clerk-id': userId
+                }
+            });
 
             onTransactionCreated();
             onClose();
 
         } catch (err) {
-            // Tratamento de erro mais específico
             if (axios.isAxiosError(err) && err.response?.status === 401) {
-                setError("Sessão expirada. Faça login novamente.");
+                setError("Sessão inválida. Verifique seu login.");
             } else {
                 setError("Falha ao adicionar lançamento. Tente novamente.");
             }
