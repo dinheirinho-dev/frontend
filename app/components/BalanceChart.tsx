@@ -70,8 +70,10 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
                         tick={{ fill: '#9ca3af', fontSize: 11 }}
                         minTickGap={30}
                         tickFormatter={(tick) => {
-                            const date = new Date(tick);
-                            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                            if (!tick) return "";
+                            // O tick vem como "2026-02-02"
+                            const [year, month, day] = tick.split('-');
+                            return `${day}/${month}`; // Retorna "02/02" sem erro de fuso
                         }}
                     />
 

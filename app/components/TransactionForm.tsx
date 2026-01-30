@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import React from 'react';
-// 1. Importamos o useAuth para pegar o ID do usuário
 import { useAuth } from "@clerk/nextjs";
 import api from '../../src/services/api';
 import axios from 'axios';
@@ -17,20 +16,30 @@ const CATEGORIES = [
 ];
 
 export default function TransactionForm({ onClose, onTransactionCreated }: TransactionFormProps) {
-    // 2. Pegamos o userId do Clerk
     const { userId } = useAuth();
 
     const [descricao, setDescricao] = useState('');
     const [valor, setValor] = useState('');
     const [tipo, setTipo] = useState('RECEITA');
     const [categoria, setCategoria] = useState(CATEGORIES[0]);
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState('');
+
+    const formatToBRL = (value: string) => {
+        // Remove tudo que não é dígito
+        const cleanValue = value.replace(/\D/g, "");
+
+        // Converte para centavos e formata
+        const options = { minimumFractionDigits: 2 };
+        const result = (Number(cleanValue) / 100).toLocaleString("pt-BR", options);
+
+        return `R$ ${result}`;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // 3. Verificação de segurança: se o Clerk ainda não carregou o ID, não deixa enviar
         if (!userId) {
             setError("Identificando usuário... tente novamente.");
             return;
@@ -39,15 +48,18 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
         setError('');
         setLoading(true);
 
+        // Passando a parte numérica do valor
+        const numericAmount = parseFloat(valor.replace(/[^\d]/g, "")) / 100;
+
         try {
             const data = {
                 descricao: descricao,
-                valor: parseFloat(valor),
+                valor: numericAmount,
                 tipo: tipo,
                 categoria: categoria,
+                date: date
             };
 
-            // 4. Injetamos o header x-clerk-id na requisição
             await api.post('/transactions/', data, {
                 headers: {
                     'x-clerk-id': userId
@@ -89,6 +101,34 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
                         </select>
                     </div>
 
+                    {/* DATA */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Data</label>
+                        <input
+                            type="date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm transition-all"
+                        />
+                    </div>
+
+                    {/* VALOR */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                        <input
+                            type="text" // Mudamos para text para aceitar a máscara
+                            value={valor}
+                            onChange={(e) => {
+                                const formatted = formatToBRL(e.target.value);
+                                setValor(formatted);
+                            }}
+                            placeholder="R$ 0,00"
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 focus:ring-green-500 focus:border-green-500"
+                        />
+                    </div>
+
                     {/* CATEGORIA */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Categoria</label>
@@ -104,20 +144,6 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
                         </select>
                     </div>
 
-                    {/* VALOR */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Valor (R$)</label>
-                        <input
-                            type="number"
-                            value={valor}
-                            onChange={(e) => setValor(e.target.value)}
-                            required
-                            min="0.01"
-                            step="0.01"
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700"
-                        />
-                    </div>
-
                     {/* DESCRIÇÃO */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Descrição</label>
@@ -127,7 +153,7 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
                             onChange={(e) => setDescricao(e.target.value)}
                             placeholder="Ex: Aluguel ou Salário"
                             required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm transition-all"
                         />
                     </div>
 

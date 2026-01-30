@@ -14,7 +14,7 @@ import GoalProgressForm from '../components/GoalProgressForm';
 import BalanceChart from '../components/BalanceChart';
 
 interface FinancialSummary { total_balance: number; total_revenue: number; total_expense: number; expense_by_category: any[]; }
-interface Transaction { id: string; descricao: string; valor: number; tipo: 'GASTO' | 'RECEITA'; categoria: string; data_criacao: string; }
+interface Transaction { id: string; descricao: string; valor: number; tipo: 'GASTO' | 'RECEITA'; categoria: string; date: string; }
 interface Goal { id: string; descricao: string; valor_alvo: number; valor_atual: number; data_limite: string; }
 
 export default function DashboardPage() {
@@ -48,7 +48,7 @@ export default function DashboardPage() {
                 api.get('/balance_history/', { headers })
             ]);
             setSummary(summaryRes.data);
-            setTransactions(transRes.data.sort((a: any, b: any) => new Date(b.data_criacao).getTime() - new Date(a.data_criacao).getTime()));
+            setTransactions(transRes.data.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             setGoals(goalsRes.data);
             setBalanceHistory(historyRes.data);
         } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -92,26 +92,23 @@ export default function DashboardPage() {
             <div className="container mx-auto max-w-5xl">
 
                 {/* Header: Corrigido Alinhamento do Botão Ocultar */}
-                <div className="flex flex-col md:flex-row justify-between items-center mb-6 pt-4 gap-4 px-2">
-                    <div className="flex flex-col items-center md:items-start w-full">
-                        <div className="flex items-center justify-between w-full md:w-auto md:justify-start gap-4">
+                <div className="flex flex-col md:flex-col justify-between items-center mb-6 pt-4 gap-4 px-2">
+                    <div className="flex flex-col w-full">
+                        <div className="flex items-center justify-between w-full md:w-auto gap-4">
                             <h1 className="text-2xl md:text-3xl font-extrabold text-green-700">Dinheirinho</h1>
-
-                            {/* Botão alinhado e discreto */}
-                            <button
-                                onClick={() => setShowValues(!showValues)}
-                                className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm text-[11px] font-bold text-gray-500 hover:bg-gray-200 transition-all"
-                            >
-                                {showValues ? "👁️ Ocultar" : "🔒 Mostrar"}
-                            </button>
+                            <UserButton afterSignOutUrl="/" />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Conta de {user?.firstName}</p>
                     </div>
 
-                    <div className="flex w-full md:w-auto gap-2 items-center justify-between md:justify-end">
+                    <div className="flex w-full gap-2 items-center justify-items-between md:justify-end">
                         <button onClick={() => setShowTransactionForm(true)} className="bg-green-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-lg flex-1 md:flex-none">+ Lançamento</button>
-                        <UserButton afterSignOutUrl="/" />
-                        <button onClick={async () => { await signOut(); router.push('/'); }} className="bg-white border border-red-200 text-red-600 font-bold py-2.5 px-4 rounded-xl text-xs">Sair</button>
+                        <button
+                            onClick={() => setShowValues(!showValues)}
+                            className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm text-[11px] font-bold text-gray-500 hover:bg-gray-200 transition-all"
+                        >
+                            {showValues ? "👁️ Ocultar" : "🔒 Mostrar"}
+                        </button>
                     </div>
                 </div>
 
@@ -205,6 +202,7 @@ export default function DashboardPage() {
                         <table className="w-full text-left min-w-[550px]">
                             <thead>
                                 <tr className="border-b border-gray-100 text-gray-400 text-[10px] uppercase">
+                                    <th className="py-3 px-2">Data</th>
                                     <th className="py-3 px-2">Descrição</th>
                                     <th className="py-3 px-2">Categoria</th>
                                     <th className="py-3 px-2 text-right">Valor</th>
@@ -213,6 +211,9 @@ export default function DashboardPage() {
                             <tbody className="divide-y divide-gray-50">
                                 {transactions.slice(0, 10).map((t) => (
                                     <tr key={t.id} className="text-xs hover:bg-gray-50 transition-colors">
+                                        <td className="py-4 px-2 text-gray-500 font-medium">
+                                            {new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}
+                                        </td>
                                         <td className="py-4 px-2 text-gray-800 font-medium">{t.descricao}</td>
                                         <td className="py-4 px-2">
                                             <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-semibold">{t.categoria}</span>

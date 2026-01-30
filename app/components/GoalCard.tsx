@@ -88,22 +88,22 @@ export default function GoalCard({ goal, showValues, onEdit, onDelete, onAddProg
                         <div className="flex items-center gap-1 sm:gap-2 mr-1">
                             <button
                                 onClick={() => onDelete(goal.id)}
-                                className="p-2 text-gray-300 hover:text-red-500 transition-colors text-[9px] font-bold uppercase tracking-tighter"
+                                className="p-2 text-gray-400 hover:text-red-500 transition-colors text-[11.5px] font-bold uppercase tracking-tighter"
                             >
                                 Excluir
                             </button>
                             <button
                                 onClick={() => onEdit(goal)}
-                                className="p-2 text-gray-300 hover:text-gray-600 transition-colors text-[9px] font-bold uppercase tracking-tighter"
+                                className="p-2 text-gray-400 hover:text-gray-700 transition-colors text-[11.5px] font-bold uppercase tracking-tighter"
                             >
                                 Editar
                             </button>
                         </div>
 
-                        {/* Botão de Aporte: Protegido contra quebra */}
+                        {/* Botão de Aporte */}
                         <button
                             onClick={() => onAddProgress(goal)}
-                            className="bg-gray-900 text-white text-[10px] font-black px-5 py-3 rounded-xl hover:bg-green-600 transition-all uppercase tracking-widest shadow-sm active:scale-95 whitespace-nowrap flex-shrink-0"
+                            className="bg-gray-900 text-white text-[10px] font-black px-3 py-3 rounded-xl hover:bg-green-600 transition-all uppercase tracking-widest shadow-sm active:scale-95 whitespace-nowrap flex-shrink-0"
                         >
                             + Aporte
                         </button>
