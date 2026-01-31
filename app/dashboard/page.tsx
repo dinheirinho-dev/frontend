@@ -6,6 +6,7 @@ import React from 'react';
 import { useAuth, useUser, useClerk, UserButton } from "@clerk/nextjs";
 import api from '../../src/services/api';
 
+import ConfirmModal from '../components/ConfirmModal';
 import GoalCard from '../components/GoalCard';
 import ExpensePieChart from '../components/ExpensePieChart';
 import GoalForm from '../components/GoalForm';
@@ -37,22 +38,76 @@ export default function DashboardPage() {
     const [progressGoalId, setProgressGoalId] = useState<string | null>(null);
     const [progressGoalDescription, setProgressGoalDescription] = useState<string>('');
 
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+    // Crie o estado para saber qual transação está sendo editada
+    const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+    // Função para abrir o modal de edição
+    const handleEditTransaction = (transaction: Transaction) => {
+        setEditingTransaction(transaction);
+        setShowTransactionForm(true);
+    };
+
+    const handleDeleteClick = (id: string) => {
+        setTransactionToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!transactionToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await api.delete(`/transactions/${transactionToDelete}`, {
+                headers: { 'x-clerk-id': userId }
+            });
+            fetchData(); // Recarrega os dados
+            setShowDeleteModal(false);
+        } catch (err) {
+            alert("Erro ao excluir. Tente novamente.");
+        } finally {
+            setIsDeleting(false);
+            setTransactionToDelete(null);
+        }
+    };
+
     const fetchData = useCallback(async () => {
         if (!userId || !user) return;
+
+        // 1. ADICIONE ISSO: Força o carregamento visual
+        setLoading(true);
+
         try {
             const headers = { 'x-clerk-id': userId, 'x-clerk-email': user.primaryEmailAddress?.emailAddress };
+            const queryParams = `?month=${selectedMonth}&year=${selectedYear}`;
+
             const [summaryRes, transRes, goalsRes, historyRes] = await Promise.all([
-                api.get('/summary/', { headers }),
-                api.get('/transactions/', { headers }),
+                api.get(`/summary/${queryParams}`, { headers }),
+                api.get(`/transactions/${queryParams}`, { headers }),
                 api.get('/goals/', { headers }),
-                api.get('/balance_history/', { headers })
+                api.get(`/balance_history/${queryParams}`, { headers })
             ]);
+
+            // 2. LOG DE CONTROLE: Abra o console (F12) e veja se isso aqui muda quando você troca o mês
+            console.log(`Dados recebidos para o mês ${selectedMonth}:`, summaryRes.data);
+
             setSummary(summaryRes.data);
-            setTransactions(transRes.data.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-            setGoals(goalsRes.data);
-            setBalanceHistory(historyRes.data);
-        } catch (err) { console.error(err); } finally { setLoading(false); }
-    }, [userId, user]);
+            setTransactions(Array.isArray(transRes.data) ? transRes.data : []);
+            setGoals(Array.isArray(goalsRes.data) ? goalsRes.data : []);
+            setBalanceHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
+
+        } catch (err) {
+            console.error("Erro no fetch:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [userId, user, selectedMonth, selectedYear]);
 
     const handleDeleteGoal = async (goalId: string) => {
         if (!window.confirm("Deseja realmente excluir esta meta?")) return;
@@ -91,7 +146,7 @@ export default function DashboardPage() {
         <div className="min-h-screen bg-gray-50 p-2 md:p-4">
             <div className="container mx-auto max-w-5xl">
 
-                {/* Header: Corrigido Alinhamento do Botão Ocultar */}
+                {/* Header */}
                 <div className="flex flex-col md:flex-col justify-between items-center mb-6 pt-4 gap-4 px-2">
                     <div className="flex flex-col w-full">
                         <div className="flex items-center justify-between w-full md:w-auto gap-4">
@@ -112,8 +167,28 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Resumo Financeiro com Blur */}
+                {/* Resumo Financeiro */}
                 <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-xl mb-8 border-t-8 border-green-600 mx-2">
+                    <div className='mb-5'>
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                            className="justify-end bg-white border border-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500"
+                        >
+                            <option value={1}>Janeiro</option>
+                            <option value={2}>Fevereiro</option>
+                            <option value={3}>Março</option>
+                            <option value={4}>Abril</option>
+                            <option value={5}>Maio</option>
+                            <option value={6}>Junho</option>
+                            <option value={7}>Julho</option>
+                            <option value={8}>Agosto</option>
+                            <option value={9}>Setembro</option>
+                            <option value={10}>Outubro</option>
+                            <option value={11}>Novembro</option>
+                            <option value={12}>Dezembro</option>
+                        </select>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                         <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
                             <p className="text-[10px] font-bold text-gray-400 uppercase">Saldo Atual</p>
@@ -206,6 +281,7 @@ export default function DashboardPage() {
                                     <th className="py-3 px-2">Descrição</th>
                                     <th className="py-3 px-2">Categoria</th>
                                     <th className="py-3 px-2 text-right">Valor</th>
+                                    <th className="py-3 px-2 text-center">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -221,6 +297,25 @@ export default function DashboardPage() {
                                         <td className={`py-4 px-2 text-right font-black ${t.tipo === 'RECEITA' ? 'text-green-600' : 'text-red-500'}`}>
                                             {renderValue(t.valor)}
                                         </td>
+                                        {/* BOTÕES DE AÇÃO */}
+                                        <td className="py-4 px-2 text-center">
+                                            <div className="flex justify-center gap-2">
+                                                <button
+                                                    onClick={() => handleEditTransaction(t)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(t.id)}
+                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Excluir"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -232,7 +327,24 @@ export default function DashboardPage() {
             {/* Modais */}
             {showGoalForm && <GoalForm onClose={() => { setShowGoalForm(false); setEditingGoal(null); }} onGoalCreated={fetchData} goalToEdit={editingGoal} />}
             {showProgressForm && progressGoalId && <GoalProgressForm onClose={() => setShowProgressForm(false)} onProgressAdded={fetchData} goalId={progressGoalId} goalDescription={progressGoalDescription} />}
-            {showTransactionForm && <TransactionForm onClose={() => setShowTransactionForm(false)} onTransactionCreated={fetchData} />}
+            {showTransactionForm && (
+                <TransactionForm
+                    onClose={() => {
+                        setShowTransactionForm(false);
+                        setEditingTransaction(null); // Limpa o estado ao fechar
+                    }}
+                    onTransactionCreated={fetchData}
+                    transactionToEdit={editingTransaction} // Passa a transação selecionada
+                />
+            )}
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Lançamento?"
+                message="Tem certeza? Essa ação vai remover o valor do seu saldo e do gráfico permanentemente."
+                loading={isDeleting}
+            />
         </div>
     );
 }

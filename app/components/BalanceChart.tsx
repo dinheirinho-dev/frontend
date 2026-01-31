@@ -13,20 +13,22 @@ const formatMoney = (value: number, includeCurrency = true): string => {
         style: 'currency',
         currency: 'BRL',
         minimumFractionDigits: 2,
-    }).format(value); // Removi o Math.abs para o sinal de negativo aparecer no eixo Y se necessário
+    }).format(value);
     return includeCurrency ? formatted : formatted.replace('R$', '').trim();
 };
-
 interface BalanceChartProps {
     data: BalancePoint[];
 }
 
 const CustomTooltip: React.FC<{ active?: boolean, payload?: any[], label?: string }> = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length && label) {
+        const [year, month, day] = label.split('-');
+        const d = new Date(Number(year), Number(month) - 1, Number(day));
+
         return (
             <div className="p-4 bg-white/90 backdrop-blur-md border border-gray-100 rounded-2xl shadow-xl text-sm">
                 <p className="font-bold text-gray-400 mb-1">
-                    {new Date(label || '').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                    {d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
                 </p>
                 <p className="text-xl font-black text-green-600">
                     {formatMoney(payload[0].value)}

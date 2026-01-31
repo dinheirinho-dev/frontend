@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import React from 'react';
 import { useAuth } from "@clerk/nextjs";
 import api from '../../src/services/api';
@@ -9,33 +9,39 @@ import axios from 'axios';
 interface TransactionFormProps {
     onClose: () => void;
     onTransactionCreated: () => void;
+    transactionToEdit?: any; // Nova prop para edição
 }
 
 const CATEGORIES = [
     'Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Educação', 'Saúde', 'Salário', 'Investimento', 'Outros'
 ];
 
-export default function TransactionForm({ onClose, onTransactionCreated }: TransactionFormProps) {
+export default function TransactionForm({ onClose, onTransactionCreated, transactionToEdit }: TransactionFormProps) {
     const { userId } = useAuth();
 
-    const [descricao, setDescricao] = useState('');
+    const [descricao, setDescricao] = useState(transactionToEdit?.descricao || '');
     const [valor, setValor] = useState('');
-    const [tipo, setTipo] = useState('RECEITA');
-    const [categoria, setCategoria] = useState(CATEGORIES[0]);
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [tipo, setTipo] = useState(transactionToEdit?.tipo || 'RECEITA');
+    const [categoria, setCategoria] = useState(transactionToEdit?.categoria || CATEGORIES[0]);
+    const [date, setDate] = useState(transactionToEdit?.date || new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState('');
 
     const formatToBRL = (value: string) => {
-        // Remove tudo que não é dígito
         const cleanValue = value.replace(/\D/g, "");
-
-        // Converte para centavos e formata
         const options = { minimumFractionDigits: 2 };
         const result = (Number(cleanValue) / 100).toLocaleString("pt-BR", options);
-
         return `R$ ${result}`;
     };
+
+    // Efeito para carregar e formatar o valor inicial caso seja edição
+    useEffect(() => {
+        if (transactionToEdit) {
+            // Multiplicamos por 100 para o formatToBRL processar os centavos corretamente
+            const valueAsStr = (transactionToEdit.valor * 100).toFixed(0);
+            setValor(formatToBRL(valueAsStr));
+        }
+    }, [transactionToEdit]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -48,7 +54,6 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
         setError('');
         setLoading(true);
 
-        // Passando a parte numérica do valor
         const numericAmount = parseFloat(valor.replace(/[^\d]/g, "")) / 100;
 
         try {
@@ -60,11 +65,17 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
                 date: date
             };
 
-            await api.post('/transactions/', data, {
-                headers: {
-                    'x-clerk-id': userId
-                }
-            });
+            if (transactionToEdit) {
+                // MODO EDIÇÃO: Chama o PUT
+                await api.put(`/transactions/${transactionToEdit.id}`, data, {
+                    headers: { 'x-clerk-id': userId }
+                });
+            } else {
+                // MODO CRIAÇÃO: Chama o POST
+                await api.post('/transactions/', data, {
+                    headers: { 'x-clerk-id': userId }
+                });
+            }
 
             onTransactionCreated();
             onClose();
@@ -73,7 +84,7 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setError("Sessão inválida. Verifique seu login.");
             } else {
-                setError("Falha ao adicionar lançamento. Tente novamente.");
+                setError("Falha ao salvar lançamento. Tente novamente.");
             }
         } finally {
             setLoading(false);
@@ -84,7 +95,7 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
         <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
                 <h2 className="text-2xl font-bold text-green-700 mb-4 text-center">
-                    Novo Lançamento ({tipo === 'GASTO' ? 'Gasto' : 'Receita'})
+                    {transactionToEdit ? 'Editar Lançamento' : `Novo Lançamento (${tipo === 'GASTO' ? 'Gasto' : 'Receita'})`}
                 </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -117,12 +128,9 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Valor (R$)</label>
                         <input
-                            type="text" // Mudamos para text para aceitar a máscara
+                            type="text"
                             value={valor}
-                            onChange={(e) => {
-                                const formatted = formatToBRL(e.target.value);
-                                setValor(formatted);
-                            }}
+                            onChange={(e) => setValor(formatToBRL(e.target.value))}
                             placeholder="R$ 0,00"
                             required
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 focus:ring-green-500 focus:border-green-500"
@@ -174,7 +182,7 @@ export default function TransactionForm({ onClose, onTransactionCreated }: Trans
                                 } disabled:bg-gray-400 shadow-md`}
                             disabled={loading}
                         >
-                            {loading ? 'Salvando...' : 'Salvar Lançamento'}
+                            {loading ? 'Salvando...' : transactionToEdit ? 'Salvar Alterações' : 'Salvar Lançamento'}
                         </button>
                     </div>
                 </form>
