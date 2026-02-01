@@ -13,6 +13,7 @@ import GoalForm from '../components/GoalForm';
 import TransactionForm from '../components/TransactionForm';
 import GoalProgressForm from '../components/GoalProgressForm';
 import BalanceChart from '../components/BalanceChart';
+import WelcomeModal from '../components/WelcomeModal'; // 1. Importação do novo componente
 
 interface FinancialSummary { total_balance: number; total_revenue: number; total_expense: number; expense_by_category: any[]; }
 interface Transaction { id: string; descricao: string; valor: number; tipo: 'GASTO' | 'RECEITA'; categoria: string; date: string; }
@@ -45,10 +46,10 @@ export default function DashboardPage() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-    // Crie o estado para saber qual transação está sendo editada
+    // 2. Estado para o Modal de Boas-vindas
+    const [showWelcome, setShowWelcome] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-    // Função para abrir o modal de edição
     const handleEditTransaction = (transaction: Transaction) => {
         setEditingTransaction(transaction);
         setShowTransactionForm(true);
@@ -61,13 +62,12 @@ export default function DashboardPage() {
 
     const handleConfirmDelete = async () => {
         if (!transactionToDelete) return;
-
         setIsDeleting(true);
         try {
             await api.delete(`/transactions/${transactionToDelete}`, {
                 headers: { 'x-clerk-id': userId }
             });
-            fetchData(); // Recarrega os dados
+            fetchData();
             setShowDeleteModal(false);
         } catch (err) {
             alert("Erro ao excluir. Tente novamente.");
@@ -79,8 +79,6 @@ export default function DashboardPage() {
 
     const fetchData = useCallback(async () => {
         if (!userId || !user) return;
-
-        // 1. ADICIONE ISSO: Força o carregamento visual
         setLoading(true);
 
         try {
@@ -94,9 +92,6 @@ export default function DashboardPage() {
                 api.get(`/balance_history/${queryParams}`, { headers })
             ]);
 
-            // 2. LOG DE CONTROLE: Abra o console (F12) e veja se isso aqui muda quando você troca o mês
-            console.log(`Dados recebidos para o mês ${selectedMonth}:`, summaryRes.data);
-
             setSummary(summaryRes.data);
             setTransactions(Array.isArray(transRes.data) ? transRes.data : []);
             setGoals(Array.isArray(goalsRes.data) ? goalsRes.data : []);
@@ -109,18 +104,56 @@ export default function DashboardPage() {
         }
     }, [userId, user, selectedMonth, selectedYear]);
 
+    // 3. Lógica para disparar o Boas-vindas se não houver transações
+    useEffect(() => {
+        // Só verificamos se o carregamento inicial terminou
+        if (isLoaded && userId && !loading) {
+            const hasSeenWelcome = localStorage.getItem(`welcome_seen_${userId}`);
+
+            // Só mostra se: não viu o modal E não tem transações NO TOTAL
+            // (Aqui usamos uma malandragem: se o saldo total é 0 e não tem nada na lista, 
+            // mas o usuário está no mês atual)
+            const isCurrentMonth = selectedMonth === new Date().getMonth() + 1;
+
+            if (!hasSeenWelcome && transactions.length === 0 && isCurrentMonth) {
+                setShowWelcome(true);
+            }
+        }
+    }, [isLoaded, userId, loading, transactions.length, selectedMonth]);
+
+    // 4. Função para processar o Saldo Inicial
+    const handleFinishWelcome = async (initialBalance: number) => {
+        try {
+            if (initialBalance > 0) {
+                const data = {
+                    descricao: "Saldo Inicial (Início do App)",
+                    valor: initialBalance,
+                    tipo: 'RECEITA',
+                    categoria: 'Outros',
+                    date: new Date().toISOString().split('T')[0]
+                };
+                await api.post('/transactions/', data, { headers: { 'x-clerk-id': userId } });
+            }
+
+            // MARCAÇÃO: O navegador vai lembrar que este usuário já viu o modal
+            localStorage.setItem(`welcome_seen_${userId}`, 'true');
+
+            setShowWelcome(false);
+            fetchData();
+        } catch (err) {
+            console.error("Erro ao salvar saldo inicial:", err);
+            setShowWelcome(false);
+        }
+    };
+
     const handleDeleteGoal = async (goalId: string) => {
         if (!window.confirm("Deseja realmente excluir esta meta?")) return;
-
         try {
             const headers = { 'x-clerk-id': userId };
-            // Chama a rota de delete no seu backend
             await api.delete(`/goals/${goalId}`, { headers });
-
-            // Atualiza a lista local imediatamente para uma sensação de velocidade
             setGoals(prev => prev.filter(g => g.id !== goalId));
-
-            // Recarrega o sumário e outros dados
+            localStorage.setItem(`dinheirinho_onboarding_${userId}`, 'true'); // Salva que já viu
+            setShowWelcome(false);
             fetchData();
         } catch (err) {
             console.error("Erro ao excluir meta:", err);
@@ -138,7 +171,9 @@ export default function DashboardPage() {
         </span>
     );
 
-    if (!isLoaded || loading) return <div className="text-center mt-20 text-green-700 font-bold">Carregando...</div>;
+    if (!isLoaded || (loading && !summary)) {
+        return <div className="flex items-center justify-center min-h-screen text-green-700 font-bold animate-pulse">Carregando Dinheirinho...</div>;
+    }
 
     const saldo = summary?.total_balance || 0;
 
@@ -152,6 +187,11 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between w-full md:w-auto gap-4">
                             <h1 className="text-2xl md:text-3xl font-extrabold text-green-700">Dinheirinho</h1>
                             <UserButton afterSignOutUrl="/" />
+                            {loading && (
+                                <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 text-white text-[10px] px-3 py-1 rounded-full shadow-lg z-[100] animate-bounce">
+                                    Atualizando dados...
+                                </div>
+                            )}
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Conta de {user?.firstName}</p>
                     </div>
@@ -173,7 +213,7 @@ export default function DashboardPage() {
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                            className="justify-end bg-white border border-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500"
+                            className="justify-end bg-white border border-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none"
                         >
                             <option value={1}>Janeiro</option>
                             <option value={2}>Fevereiro</option>
@@ -223,14 +263,11 @@ export default function DashboardPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {goals.map((goal, index) => {
-                            // Lógica: Se for a última meta e o total de metas for ímpar
                             const isLastAndOdd = index === goals.length - 1 && goals.length % 2 !== 0;
-
                             return (
                                 <div
                                     key={goal.id}
-                                    className={`transform transition-all hover:scale-[1.01] ${isLastAndOdd ? "md:col-span-2" : "md:col-span-1"
-                                        }`}
+                                    className={`transform transition-all hover:scale-[1.01] ${isLastAndOdd ? "md:col-span-2" : "md:col-span-1"}`}
                                 >
                                     <GoalCard
                                         goal={goal}
@@ -250,10 +287,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Gráficos */}
-                <div>
-                    <h2 className="mt-10 mx-2 mb-4 text-2xl font-black text-gray-800 tracking-tight">Gráficos</h2>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 mt-2 px-2">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 mt-12 px-2">
                     <div className="lg:col-span-5 bg-white p-4 md:p-6 rounded-2xl shadow-lg">
                         <h2 className="text-lg font-bold mb-6 text-gray-800">Divisão de Gastos</h2>
                         {summary && <ExpensePieChart
@@ -268,11 +302,9 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Histórico com Blur lateral e Scroll */}
-                <div>
-                    <h2 className="mt-10 mx-2 mb-4 text-2xl font-black text-gray-800 tracking-tight">Histórico de Lançamentos</h2>
-                </div>
-                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg mb-10 mx-2 overflow-hidden">
+                {/* Histórico */}
+                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg my-12 mx-2 overflow-hidden">
+                    <h2 className="mb-4 text-xl font-black text-gray-800 tracking-tight">Histórico de Lançamentos</h2>
                     <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
                         <table className="w-full text-left min-w-[550px]">
                             <thead>
@@ -297,23 +329,10 @@ export default function DashboardPage() {
                                         <td className={`py-4 px-2 text-right font-black ${t.tipo === 'RECEITA' ? 'text-green-600' : 'text-red-500'}`}>
                                             {renderValue(t.valor)}
                                         </td>
-                                        {/* BOTÕES DE AÇÃO */}
                                         <td className="py-4 px-2 text-center">
                                             <div className="flex justify-center gap-2">
-                                                <button
-                                                    onClick={() => handleEditTransaction(t)}
-                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteClick(t.id)}
-                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    🗑️
-                                                </button>
+                                                <button onClick={() => handleEditTransaction(t)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">✏️</button>
+                                                <button onClick={() => handleDeleteClick(t.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors">🗑️</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -325,16 +344,19 @@ export default function DashboardPage() {
             </div>
 
             {/* Modais */}
+            <WelcomeModal
+                isOpen={showWelcome}
+                userName={user?.firstName}
+                onFinish={handleFinishWelcome}
+            />
+
             {showGoalForm && <GoalForm onClose={() => { setShowGoalForm(false); setEditingGoal(null); }} onGoalCreated={fetchData} goalToEdit={editingGoal} />}
             {showProgressForm && progressGoalId && <GoalProgressForm onClose={() => setShowProgressForm(false)} onProgressAdded={fetchData} goalId={progressGoalId} goalDescription={progressGoalDescription} />}
             {showTransactionForm && (
                 <TransactionForm
-                    onClose={() => {
-                        setShowTransactionForm(false);
-                        setEditingTransaction(null); // Limpa o estado ao fechar
-                    }}
+                    onClose={() => { setShowTransactionForm(false); setEditingTransaction(null); }}
                     onTransactionCreated={fetchData}
-                    transactionToEdit={editingTransaction} // Passa a transação selecionada
+                    transactionToEdit={editingTransaction}
                 />
             )}
             <ConfirmModal
