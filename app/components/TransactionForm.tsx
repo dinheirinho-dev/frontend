@@ -93,23 +93,38 @@ export default function TransactionForm({ onClose, onTransactionCreated, transac
 
     return (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
-                <h2 className="text-2xl font-bold text-green-700 mb-4 text-center">
-                    {transactionToEdit ? 'Editar Lançamento' : `Novo Lançamento (${tipo === 'GASTO' ? 'Gasto' : 'Receita'})`}
+            <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md border-t-8 transition-all duration-300"
+                style={{ borderColor: tipo === 'GASTO' ? '#ef4444' : '#22c55e' }}>
+
+                <h2 className={`text-2xl font-bold mb-6 text-center transition-colors duration-300 ${tipo === 'GASTO' ? 'text-red-600' : 'text-green-700'
+                    }`}>
+                    {transactionToEdit ? 'Editar Lançamento' : `Nov${tipo === 'GASTO' ? 'o Gasto' : 'a Receita'}`}
                 </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* TIPO */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Tipo</label>
-                        <select
-                            value={tipo}
-                            onChange={(e) => setTipo(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-700"
+
+                    {/* NOVO SELETOR ESTILO INVESTIDOR10 */}
+                    <div className="flex p-1 bg-gray-100 rounded-lg mb-6">
+                        <button
+                            type="button"
+                            onClick={() => setTipo('GASTO')}
+                            className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md font-bold transition-all ${tipo === 'GASTO'
+                                ? 'bg-white text-red-600 shadow-sm scale-100'
+                                : 'text-gray-500 hover:text-gray-700 scale-95 opacity-70'
+                                }`}
                         >
-                            <option value="RECEITA">RECEITA (➕)</option>
-                            <option value="GASTO">GASTO (➖)</option>
-                        </select>
+                            ➖ GASTO
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTipo('RECEITA')}
+                            className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md font-bold transition-all ${tipo === 'RECEITA'
+                                ? 'bg-white text-green-600 shadow-sm scale-100'
+                                : 'text-gray-500 hover:text-gray-700 scale-95 opacity-70'
+                                }`}
+                        >
+                            ➕ RECEITA
+                        </button>
                     </div>
 
                     {/* DATA */}
@@ -120,20 +135,21 @@ export default function TransactionForm({ onClose, onTransactionCreated, transac
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
                             required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm transition-all"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-200 outline-none text-gray-700"
                         />
                     </div>
 
                     {/* VALOR */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                        <label className="block text-sm font-medium text-gray-700">Valor</label>
                         <input
                             type="text"
                             value={valor}
                             onChange={(e) => setValor(formatToBRL(e.target.value))}
                             placeholder="R$ 0,00"
                             required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 focus:ring-green-500 focus:border-green-500"
+                            className={`mt-1 block w-full px-3 py-2 border-2 rounded-md text-xl font-bold transition-colors outline-none ${tipo === 'GASTO' ? 'border-red-100 focus:border-red-500 text-red-600' : 'border-green-100 focus:border-green-500 text-green-600'
+                                }`}
                         />
                     </div>
 
@@ -144,7 +160,7 @@ export default function TransactionForm({ onClose, onTransactionCreated, transac
                             value={categoria}
                             onChange={(e) => setCategoria(e.target.value)}
                             required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 outline-none focus:ring-2 focus:ring-gray-200"
                         >
                             {CATEGORIES.map((cat) => (
                                 <option key={cat} value={cat}>{cat}</option>
@@ -161,28 +177,30 @@ export default function TransactionForm({ onClose, onTransactionCreated, transac
                             onChange={(e) => setDescricao(e.target.value)}
                             placeholder="Ex: Aluguel ou Salário"
                             required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-700 shadow-sm transition-all"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-200 outline-none text-gray-700 shadow-sm"
                         />
                     </div>
 
                     {error && <p className="text-red-500 text-sm font-medium text-center">{error}</p>}
 
-                    <div className="flex justify-end space-x-3 pt-4">
+                    <div className="flex justify-end space-x-3 pt-6">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                            className="px-4 py-2 text-gray-500 font-medium hover:text-gray-700 transition-colors"
                             disabled={loading}
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            className={`px-4 py-2 text-white font-semibold rounded-lg transition-all ${tipo === 'GASTO' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
-                                } disabled:bg-gray-400 shadow-md`}
+                            className={`px-6 py-2 text-white font-bold rounded-lg transition-all transform active:scale-95 ${tipo === 'GASTO'
+                                ? 'bg-red-500 hover:bg-red-600 shadow-red-200'
+                                : 'bg-green-600 hover:bg-green-700 shadow-green-200'
+                                } disabled:bg-gray-400 shadow-lg`}
                             disabled={loading}
                         >
-                            {loading ? 'Salvando...' : transactionToEdit ? 'Salvar Alterações' : 'Salvar Lançamento'}
+                            {loading ? 'Processando...' : transactionToEdit ? 'Atualizar' : 'Confirmar'}
                         </button>
                     </div>
                 </form>
