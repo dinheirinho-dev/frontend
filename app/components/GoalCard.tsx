@@ -1,13 +1,7 @@
 import React from 'react';
-
-interface Goal {
-    id: string;
-    descricao: string;
-    valor_alvo: number;
-    valor_atual: number;
-    data_limite: string;
-    owner_id?: string;
-}
+import { Goal } from '../../src/types';
+import { maskedValue } from '../../src/utils/formatMoney';
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface GoalCardProps {
     goal: Goal;
@@ -19,91 +13,75 @@ interface GoalCardProps {
 
 export default function GoalCard({ goal, showValues, onEdit, onDelete, onAddProgress }: GoalCardProps) {
     const progress = Math.min((goal.valor_atual / goal.valor_alvo) * 100, 100);
-    const dueDate = new Date(goal.data_limite).toLocaleDateString('pt-BR');
-
-    // Formatação de valores com proteção de privacidade e trava de quebra de linha
-    const formatValue = (val: number) => (
-        <span className="font-bold">
-            {showValues
-                ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                : "R$ ••••••"}
-        </span>
-    );
+    const dueDate = new Date(goal.data_limite).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const isConcluida = goal.status === 'CONCLUIDA' || progress >= 100;
 
     return (
-        <div className="bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group h-full">
+        <div className="bg-white dark:bg-gray-800 p-2.5 md:p-5 rounded-xl md:rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group w-full max-w-full">
             {/* Indicador de Status lateral */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${progress >= 100 ? 'bg-emerald-500' : 'bg-green-600'}`} />
+            <div className={`absolute left-0 top-0 bottom-0 w-1 ${isConcluida ? 'bg-emerald-500' : 'bg-green-600'}`} />
 
-            <div className="flex flex-col h-full justify-between gap-5">
+            <div className="flex flex-col gap-2 md:gap-4 pl-2">
 
                 {/* Header: Título, Badge e Porcentagem */}
-                <div className="flex justify-between items-start pl-2">
-                    <div className="flex-1">
-                        <h3 className="text-lg font-bold text-gray-800 tracking-tight leading-tight break-words">{goal.descricao}</h3>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${progress >= 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-green-50 text-green-600'}`}>
-                                {progress >= 100 ? 'Concluída' : 'Em Foco'}
+                <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-xs md:text-base font-bold text-gray-800 dark:text-gray-100 leading-tight wrap-break-word">{goal.descricao}</h3>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${isConcluida ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : 'bg-green-50 dark:bg-green-900/40 text-green-600 dark:text-green-400'}`}>
+                                {isConcluida ? 'Concluída' : 'Em Foco'}
                             </span>
-                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Prazo: {dueDate}</span>
+                            <span className="text-[9px] text-gray-400 dark:text-gray-500 font-semibold">Prazo: {dueDate}</span>
                         </div>
                     </div>
-                    <div className="text-right ml-4">
-                        <span className="text-2xl font-black text-gray-900 leading-none">{progress.toFixed(0)}%</span>
-                    </div>
+                    <span className="text-lg md:text-2xl font-black text-gray-900 dark:text-gray-100 leading-none shrink-0">{progress.toFixed(0)}%</span>
                 </div>
 
                 {/* Barra de Progresso */}
-                <div className="px-2">
-                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
-                        <div
-                            className={`h-full rounded-full transition-all duration-1000 ease-out ${progress >= 100 ? 'bg-emerald-500' : 'bg-green-600'}`}
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
+                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                    <div
+                        className={`h-full rounded-full transition-all duration-1000 ease-out ${isConcluida ? 'bg-emerald-500' : 'bg-green-600'}`}
+                        style={{ width: `${progress}%` }}
+                    />
                 </div>
 
-                {/* Info de Valores e Ações - Flex dinâmico para não quebrar */}
-                <div className="flex flex-wrap md:flex-nowrap justify-between items-end gap-4 pl-2 pt-1">
-
-                    {/* Container de Valores */}
-                    <div className="flex gap-6 sm:gap-10 overflow-hidden flex-shrink-1">
-                        <div className="flex flex-col min-w-fit">
-                            <span className="text-[10px] text-gray-400 uppercase font-black tracking-wider whitespace-nowrap">Acumulado</span>
-                            <span className="text-sm font-bold text-green-600">
-                                {formatValue(goal.valor_atual)}
+                {/* Valores e Ações */}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex gap-3 min-w-0">
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-wide">Acum.</span>
+                            <span className="text-xs font-bold text-green-600 dark:text-green-400 truncate">
+                                {maskedValue(goal.valor_atual, showValues)}
                             </span>
                         </div>
-                        <div className="flex flex-col min-w-fit">
-                            <span className="text-[10px] text-gray-400 uppercase font-black tracking-wider whitespace-nowrap">Objetivo</span>
-                            <span className="text-sm font-bold text-gray-700">
-                                {formatValue(goal.valor_alvo)}
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-wide">Objetivo</span>
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate">
+                                {maskedValue(goal.valor_alvo, showValues)}
                             </span>
                         </div>
                     </div>
 
-                    {/* Container de Botões */}
-                    <div className="flex items-center gap-2 ml-auto">
-                        {/* Botões Secundários: Visíveis no Mobile via toque ou sempre no Desktop */}
-                        <div className="flex items-center gap-1 sm:gap-2 mr-1">
-                            <button
-                                onClick={() => onDelete(goal.id)}
-                                className="p-2 text-gray-400 hover:text-red-500 transition-colors text-[11.5px] font-bold uppercase tracking-tighter"
-                            >
-                                Excluir
-                            </button>
-                            <button
-                                onClick={() => onEdit(goal)}
-                                className="p-2 text-gray-400 hover:text-gray-700 transition-colors text-[11.5px] font-bold uppercase tracking-tighter"
-                            >
-                                Editar
-                            </button>
-                        </div>
-
-                        {/* Botão de Aporte */}
+                    <div className="flex items-center gap-1 shrink-0">
+                        <button
+                            onClick={() => onDelete(goal.id)}
+                            aria-label={`Excluir meta ${goal.descricao}`}
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                            onClick={() => onEdit(goal)}
+                            aria-label={`Editar meta ${goal.descricao}`}
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        >
+                            <Pencil className="w-3.5 h-3.5" />
+                        </button>
                         <button
                             onClick={() => onAddProgress(goal)}
-                            className="bg-gray-900 text-white text-[10px] font-black px-3 py-3 rounded-xl hover:bg-green-600 transition-all uppercase tracking-widest shadow-sm active:scale-95 whitespace-nowrap flex-shrink-0"
+                            disabled={isConcluida}
+                            aria-label={`Adicionar aporte na meta ${goal.descricao}`}
+                            className="bg-gray-900 dark:bg-gray-700 text-white text-[9px] font-black px-2.5 py-1.5 rounded-lg hover:bg-green-600 dark:hover:bg-green-600 transition-all shadow-sm active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             + Aporte
                         </button>

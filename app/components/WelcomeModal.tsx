@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import React from 'react';
+import { formatInputToBRL, parseBRLToNumber } from '../../src/utils/formatMoney';
 
 interface WelcomeModalProps {
     isOpen: boolean;
@@ -15,16 +16,10 @@ export default function WelcomeModal({ isOpen, userName, onFinish }: WelcomeModa
 
     if (!isOpen) return null;
 
-    const formatToBRL = (value: string) => {
-        const cleanValue = value.replace(/\D/g, "");
-        const options = { minimumFractionDigits: 2 };
-        return (Number(cleanValue) / 100).toLocaleString("pt-BR", options);
-    };
-
     const handleNext = () => {
         if (step === 1) setStep(2);
         else {
-            const numericAmount = parseFloat(valor.replace(/[^\d]/g, "")) / 100 || 0;
+            const numericAmount = parseBRLToNumber(valor) || 0;
             onFinish(numericAmount);
         }
     };
@@ -54,7 +49,7 @@ export default function WelcomeModal({ isOpen, userName, onFinish }: WelcomeModa
                             <input
                                 type="text"
                                 value={valor}
-                                onChange={(e) => setValor(formatToBRL(e.target.value))}
+                                onChange={(e) => setValor(formatInputToBRL(e.target.value))}
                                 placeholder="0,00"
                                 className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-2xl font-black text-gray-800 focus:border-green-500 focus:ring-0 transition-all outline-none"
                                 autoFocus

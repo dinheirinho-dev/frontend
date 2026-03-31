@@ -16,13 +16,13 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-            <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
                 <div className="text-center">
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/40 mb-4">
                         <span className="text-red-600 text-xl font-bold">⚠️</span>
                     </div>
-                    <h3 className="text-lg font-black text-gray-800 mb-2">{title}</h3>
-                    <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                    <h3 className="text-lg font-black text-gray-800 dark:text-gray-100 mb-2">{title}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
                         {message}
                     </p>
                 </div>
@@ -31,7 +31,7 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
                     <button
                         onClick={onClose}
                         disabled={loading}
-                        className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-all text-sm disabled:opacity-50"
+                        className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm disabled:opacity-50"
                     >
                         Não, manter
                     </button>

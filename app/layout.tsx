@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 export const dynamic = "force-dynamic";
 import { ClerkProvider } from '@clerk/nextjs'
 import { Geist, Geist_Mono } from "next/font/google";
@@ -15,6 +15,13 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: {
@@ -64,8 +71,21 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="pt-BR">
-        <body className="bg-gray-50 antialiased min-h-screen">
+      <html lang="pt-BR" suppressHydrationWarning>
+        <head>
+          {/* Anti-FOUC: aplica tema salvo antes do render */}
+          <script dangerouslySetInnerHTML={{ __html: `
+            (function() {
+              try {
+                var theme = localStorage.getItem('theme');
+                if (theme !== 'light') {
+                  document.documentElement.classList.add('dark');
+                }
+              } catch(e) {}
+            })();
+          `}} />
+        </head>
+        <body className="bg-gray-50 dark:bg-gray-900 antialiased min-h-screen transition-colors duration-200">
           {children}
           <Analytics />
         </body>
